@@ -1,0 +1,321 @@
+<html>
+
+    <head> 
+        <title>Tic-Tac-Toe</title>
+    </head>
+
+    <body> 
+        <h1> Tic-Tac-Toe </h1>
+
+        <main>
+            <canvas></canvas>
+        </main>
+
+        <div id="infoMessage"></div>
+
+        <h2 id='turnMessage'>  
+            Next play: <div id="turn"></div>
+        </h2>
+
+        <p> 
+            <button id="newGameButton">New Game</button> 
+        </p>    
+
+        <script>
+            const canvas = document.querySelector('canvas');
+            canvas.width = 300;
+            canvas.height = 300;
+            const ctx = canvas.getContext('2d');
+            spotSize = canvas.width/3; 
+            board = [];
+
+            wins = [ 
+                        [[0,0], [0,1], [0,2]], 
+                        [[1,0], [1,1], [1,2]],
+                        [[2,0], [2,1], [2,2]],
+                        [[0,0], [1,0], [2,0]],
+                        [[0,1], [1,1], [2,1]],
+                        [[0,2], [1,2], [2,2]],
+                        [[0,2], [1,1], [2,0]],
+                        [[0,0], [1,1], [2,2]]
+                    ];
+
+            // Maintain board state when browser refreshes
+            let gameStarted = localStorage.getItem('gameStarted');
+            if(Boolean(gameStarted)) {
+                console.log('Retrieving existing board.');
+                board = JSON.parse(localStorage.getItem('board'));
+                turn = localStorage.getItem('turn');
+                drawBoard();
+
+                if(isWinner()) {
+                    hideTurn();
+                    showWinner(getWinner());
+                } else {
+                    showTurn();
+                }
+
+                if(isTie()) {
+                    hideTurn();
+                    showTie();
+                }
+
+            } else {
+                newBoard();
+                newGame();
+                startGame();
+            }
+
+            function Spot(col, row, symbol) {
+                this.col = col;
+                this.row = row;
+                this.xPos = col * spotSize;
+                this.yPos = row * spotSize;
+                this.symbol = 0; // 0 = empty, 1 = X, -1 = O
+            }            
+
+            function getSpot(col, row) {
+                for(i = 0; i < 9; i++) {
+                    if(board[i].col == col && board[i].row == row) {
+                        return board[i];
+                    }
+                }
+                return null;
+            }
+
+            function newBoard() {
+                console.log('Creating new board.');
+                board = [];
+                for(i = 0; i < 3; i++) {
+                    for(j = 0; j < 3; j++) {
+                        board.push(new Spot(i, j, 0));
+                    }
+                }       
+                localStorage.setItem('gameStarted', true);
+                localStorage.setItem('board', JSON.stringify(board));
+            }   
+
+            function saveBoard(){
+                localStorage.setItem('board', JSON.stringify(board));
+            }
+
+            function playX(row, col) {
+                spot = getSpot(row, col);
+                spot.symbol = 1;
+                saveBoard();
+            }
+
+            function playO(row, col) {
+                spot = getSpot(row, col);
+                spot.symbol = -1;
+                saveBoard();
+            }
+
+            function drawBoard() {
+                ctx.clearRect(0, 0, 300, 300);
+                board.forEach( (spot) => {
+                    ctx.fillStyle = 'white'; 
+                    ctx.fillRect(spot.xPos, spot.yPos, spotSize, spotSize);
+                    ctx.strokeRect(spot.xPos, spot.yPos, spotSize, spotSize);
+                    ctx.fillStyle = 'black'; 
+                    ctx.font = '30px Arial';
+                    switch(spot.symbol) {
+                        case -1: 
+                            ctx.fillText("O", spot.xPos + canvas.width/6 - 10, spot.yPos + canvas.width/6 + 10);
+                            break;
+                        case 0: 
+                            break; 
+                        case 1: 
+                            ctx.fillText("X", spot.xPos + canvas.width/6 - 10, spot.yPos + canvas.width/6 + 10);
+                            break;
+                        default: 
+                            break;
+                    }
+                });
+            }
+
+            function isTie() {
+                emptySpots = false;
+                board.forEach((spot) => {
+                    if(spot.symbol == 0) {
+                        emptySpots = true;
+                    }
+                });
+                if(!emptySpots && !isWinner()) {
+                    return true;
+                }
+                return false;
+            }
+
+            function showTie() {
+                document.getElementById('infoMessage').innerText = "It's a tie!";
+            }
+
+            function isWinner() {
+                if(isWinnerX() || isWinnerO()) return true;
+                return false;
+            }
+
+            function getWinner() {
+                if(isWinnerX()) return 'X';
+                if(isWinnerO()) return 'O';
+            }
+
+            function isWinnerX() {
+                for(n = 0; n < 8; n++) {
+                    if(
+                        getSpot(wins[n][0][0], wins[n][0][1]).symbol + 
+                        getSpot(wins[n][1][0], wins[n][1][1]).symbol +
+                        getSpot(wins[n][2][0], wins[n][2][1]).symbol 
+                        == 3
+                    ) { 
+                        console.log('X Wins!');
+                        return true;
+                    } 
+                }
+                return false;
+            }
+
+            function isWinnerO() {
+                for(n = 0; n < 8; n++) {
+                    if(
+                        getSpot(wins[n][0][0], wins[n][0][1]).symbol + 
+                        getSpot(wins[n][1][0], wins[n][1][1]).symbol +
+                        getSpot(wins[n][2][0], wins[n][2][1]).symbol 
+                        == -3
+                    ) { 
+                        console.log('O Wins!');
+                        return true;
+                    } 
+                }
+                return false;              
+            }
+
+            function getMousePos(canvas, evt) {
+                var rect = canvas.getBoundingClientRect();
+                return {
+                    x: Math.abs(evt.clientX - rect.left),
+                    y: Math.abs(evt.clientY - rect.top)
+                };
+            }
+
+            function showWinner(winner) {
+                document.getElementById("infoMessage").innerText = winner + " wins!";
+            }
+
+            function showTurn() {
+                document.getElementById("turnMessage").style.display = "block";
+                document.getElementById("turn").innerText = turn;
+            }
+
+            function hideTurn() {
+                document.getElementById("turnMessage").style.display = "none";
+            }
+
+            function newGame() {
+                localStorage.setItem('gameStarted', false);
+                document.getElementById("infoMessage").innerText = "";
+                turn = 'X';
+                localStorage.setItem('turn', 'X');
+                newBoard();
+                startGame();
+                drawBoard();
+            }
+
+            function startGame() {
+                turn = 'X';
+                showTurn();
+            }
+
+            function finishGame(winner) {
+                document.getElementById("infoMessage").innerText = winner + " wins!";
+            }
+
+            function nextTurn() {
+                console.log(turn);
+                if(turn == 'X') { 
+                    turn = 'O';
+                    localStorage.setItem('turn', 'O');
+                } else if(turn == 'O') {
+                    turn = 'X';
+                    localStorage.setItem('turn', 'X');
+                }
+                
+                document.getElementById("turn").innerText = turn;
+                saveBoard();
+            }   
+            
+            canvas.onclick = function(evt) {
+                let pos = getMousePos(canvas, evt);
+                pos.x = Math.floor(pos.x);
+                pos.y = Math.floor(pos.y);
+
+                if(pos.x >= 0 && pos.x <= 100) {
+                    col = 0;
+                } else if (pos.x > 100 && pos.x <= 200) {
+                    col = 1;
+                } else if (pos.x > 200 && pos.x <= 300) {
+                    col = 2;
+                }
+
+                if(pos.y >= 0 && pos.y <= 100) {
+                    row = 0;
+                } else if (pos.y > 100 && pos.y <= 200) {
+                    row = 1;
+                } else if (pos.y > 200 && pos.y <= 300) {
+                    row = 2;
+                }
+                
+                if(!isWinner()) {
+                    spot = getSpot(col, row);
+                    if(spot.symbol == 0) {
+                        if(turn == 'X') {
+                            playX(col, row);
+                            nextTurn();
+                        } else if (turn == 'O') {
+                            playO(col, row);
+                            nextTurn();
+                        }
+                    }
+                }
+
+                if(isTie()) {
+                    showTie();
+                }
+
+                if(isWinner()) {
+                    showWinner(getWinner());                    
+                }
+
+                drawBoard();
+            }
+
+            document.getElementById("newGameButton").onclick = function() {
+                newGame();
+            }
+
+            drawBoard();
+
+        </script>
+
+        <style>
+            canvas {
+                border: 1px solid black;
+            }
+            #turn {
+                display: inline;
+            } 
+            #newGameButton {
+                font-size: 14pt;
+            }
+            #infoMessage {
+                font-size: 14pt;
+            }
+            #turnMessage {
+                display: none;
+            }
+        </style>
+
+    </body>
+
+</html>
